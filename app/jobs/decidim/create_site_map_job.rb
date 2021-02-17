@@ -13,7 +13,7 @@ module Decidim
       ::SitemapGenerator::Sitemap.default_host = "https://#{site_map_host}"
       ::SitemapGenerator::Sitemap.sitemaps_path = "sitemaps/#{site_map_host}"
 
-      site_map = ::SitemapGenerator::Sitemap.create
+      site_map = ::SitemapGenerator::Sitemap.create(compress: :all_but_first)
       site_map.add '/'
 
       participatory_processes_content.each do |content, lastmod,|
@@ -28,7 +28,7 @@ module Decidim
         site_map.add content, lastmod
       end
 
-      Decidim::PingSearchEngineJob.perform_later
+      Decidim::PingSearchEngineJob.perform_later(url)
     end
 
     private
@@ -102,6 +102,10 @@ module Decidim
 
     def site_map_host
       organization.host
+    end
+
+    def url
+      "https://#{site_map_host}/sitemap.xml"
     end
   end
 end

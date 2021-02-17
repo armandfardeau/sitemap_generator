@@ -10,9 +10,13 @@ module Decidim
       isolate_namespace Decidim::SitemapGenerator
 
       routes do
-        # Add engine routes here
-        # resources :sitemap_generator
-        # root to: "sitemap_generator#index"
+        get "/sitemap.xml", to: "site_map#index", as: :site_map
+      end
+
+      initializer "decidim_sitemap_generator.mount_routes" do
+        Decidim::Core::Engine.routes do
+          mount Decidim::SitemapGenerator::Engine, at: "/", as: "decidim_sitemap_generator"
+        end
       end
 
       initializer "decidim_sitemap_generator.assets" do |app|
