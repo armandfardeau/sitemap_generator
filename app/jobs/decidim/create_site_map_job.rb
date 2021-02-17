@@ -28,6 +28,10 @@ module Decidim
         site_map.add content, lastmod
       end
 
+      resources_content.each do |content, lastmod,|
+        site_map.add content, lastmod
+      end
+
       Decidim::PingSearchEngineJob.perform_later(url)
     end
 
@@ -47,8 +51,8 @@ module Decidim
     def participatory_processes_content
       participatory_processes.map do |process|
         [
-            participatory_processes_path(process),
-            lastmod: process.updated_at
+          participatory_processes_path(process),
+          lastmod: process.updated_at
         ]
       end
     end
@@ -67,8 +71,8 @@ module Decidim
     def components_content
       components.map do |component|
         [
-            components_path(component),
-            lastmod: component.updated_at
+          components_path(component),
+          lastmod: component.updated_at
         ]
       end
     end
@@ -87,8 +91,43 @@ module Decidim
     def static_pages_content
       static_pages.map do |static_page|
         [
-            static_pages_path(static_page),
-            lastmod: static_page.updated_at
+          static_pages_path(static_page),
+          lastmod: static_page.updated_at
+        ]
+      end
+    end
+
+    #
+    # Resources
+    #
+    def resources
+      @resources ||= model_class_names.flat_map do |model_class_name|
+        klass = model_class_name.constantize
+        next unless klass.respond_to? :published
+
+        klass.where(component: [components])
+             .published
+             .not_hidden
+      end.compact
+    end
+
+    def model_class_names
+      @model_class_names ||= Decidim.resource_registry.manifests.map(&:model_class_name) - excluded_class_names
+    end
+
+    def excluded_class_names
+      %w[Decidim::Comments::Comment Decidim::UserGroup Decidim::User Decidim::ParticipatoryProcess Decidim::ParticipatoryProcessGroup Decidim::Assembly]
+    end
+
+    def resources_path(resource)
+      Decidim::ResourceLocatorPresenter.new(resource).path
+    end
+
+    def resources_content
+      resources.map do |resource|
+        [
+          resources_path(resource),
+          lastmod: resource.updated_at
         ]
       end
     end
