@@ -7,6 +7,22 @@ module Decidim
   class CreateSiteMapJob < ApplicationJob
     include Rails.application.routes.mounted_helpers
 
+    # Option is a float between 1.0 and 0.1
+    PRIORITY = {
+      participatory_processes_content: 0.5,
+      components_content: 0.4,
+      static_pages_content: 0.3,
+      resources_content: 0.2
+    }.freeze
+
+    # Options are 'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly' or 'never'
+    CHANGEFREQ = {
+      participatory_processes_content: 'monthly',
+      components_content: 'weekly',
+      static_pages_content: 'monthly',
+      resources_content: 'daily'
+    }.freeze
+
     queue_as :scheduled
 
     def perform(_organization_id)
@@ -16,20 +32,20 @@ module Decidim
       site_map = ::SitemapGenerator::Sitemap.create(compress: :all_but_first)
       site_map.add '/'
 
-      participatory_processes_content.each do |content, lastmod,|
-        site_map.add content, lastmod
+      participatory_processes_content.each do |content, opts|
+        site_map.add content, opts
       end
 
-      components_content.each do |content, lastmod,|
-        site_map.add content, lastmod
+      components_content.each do |content, opts|
+        site_map.add content, opts
       end
 
-      static_pages_content.each do |content, lastmod,|
-        site_map.add content, lastmod
+      static_pages_content.each do |content, opts|
+        site_map.add content, opts
       end
 
-      resources_content.each do |content, lastmod,|
-        site_map.add content, lastmod
+      resources_content.each do |content, opts|
+        site_map.add content, opts
       end
 
       Decidim::PingSearchEngineJob.perform_later(url)
@@ -52,7 +68,11 @@ module Decidim
       participatory_processes.map do |process|
         [
           participatory_processes_path(process),
-          lastmod: process.updated_at
+          {
+            lastmod: process.updated_at,
+            priority: PRIORITY[:participatory_processes_content],
+            changefreq: CHANGEFREQ[:participatory_processes_content]
+          }
         ]
       end
     end
@@ -72,7 +92,11 @@ module Decidim
       components.map do |component|
         [
           components_path(component),
-          lastmod: component.updated_at
+          {
+            lastmod: component.updated_at,
+            priority: PRIORITY[:components_content],
+            changefreq: CHANGEFREQ[:components_content]
+          }
         ]
       end
     end
@@ -92,7 +116,11 @@ module Decidim
       static_pages.map do |static_page|
         [
           static_pages_path(static_page),
-          lastmod: static_page.updated_at
+          {
+            lastmod: static_page.updated_at,
+            priority: PRIORITY[:static_pages_content],
+            changefreq: CHANGEFREQ[:static_pages_content]
+          }
         ]
       end
     end
@@ -127,7 +155,11 @@ module Decidim
       resources.map do |resource|
         [
           resources_path(resource),
-          lastmod: resource.updated_at
+          {
+            lastmod: resource.updated_at,
+            priority: PRIORITY[:resources_content],
+            changefreq: CHANGEFREQ[:resources_content]
+          }
         ]
       end
     end
