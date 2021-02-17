@@ -10,7 +10,7 @@ module Decidim
     queue_as :scheduled
 
     def perform(_organization_id)
-      ::SitemapGenerator::Sitemap.default_host = "https://#{site_map_host}"
+      ::SitemapGenerator::Sitemap.default_host = default_host
       ::SitemapGenerator::Sitemap.sitemaps_path = "sitemaps/#{site_map_host}"
 
       site_map = ::SitemapGenerator::Sitemap.create(compress: :all_but_first)
@@ -104,8 +104,12 @@ module Decidim
       organization.host
     end
 
+    def default_host
+      "https://#{site_map_host}"
+    end
+
     def url
-      "https://#{site_map_host}/sitemap.xml"
+      "#{default_host}/sitemap.xml"
     end
   end
 end
